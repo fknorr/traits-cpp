@@ -4,8 +4,11 @@
 
 namespace traits {
 
-    class SelfPtr;
-    class ConstSelfPtr;
+    template<typename Interface>
+    class Self;
+
+    template<typename Interface>
+    class ConstSelf;
 
     template<typename Interface, typename Object>
     class ImplBase;
@@ -21,13 +24,13 @@ namespace traits {
 
     template<typename Object, typename Interface, typename Return, typename ...Params,
         typename ...Args>
-    Return Call(Return (Interface::*method)(ConstSelfPtr, Params...) const, Object &self,
+    Return Call(Return (Interface::*method)(ConstSelf<Interface>, Params...) const, Object &self,
             Args &&...args);
 
     template<typename Object, typename Interface, typename Return, typename ...Params,
         typename ...Args>
-    Return Call(Return (Interface::*method)(ConstSelfPtr, Params...) const, const Object &self,
-            Args &&...args);
+    Return Call(Return (Interface::*method)(ConstSelf<Interface>, Params...) const,
+            const Object &self, Args &&...args);
 
     namespace detail {
         template<typename ...Interfaces>
@@ -36,19 +39,21 @@ namespace traits {
 }
 
 
-class traits::SelfPtr
+template<typename Interface>
+class traits::Self
 {
     private:
-        SelfPtr(void *ptr)
+        Self(void *ptr)
             : _ptr(ptr)
         {
         }
 
         void *_ptr;
 
-        friend class ConstSelfPtr;
+        template<typename Object>
+        friend class ConstSelf;
 
-        template<typename Interface, typename Object>
+        template<typename, typename>
         friend class ImplBase;
 
         template<typename... Interfaces>
@@ -56,36 +61,37 @@ class traits::SelfPtr
 
         template<typename Object, typename Return, typename ...Params,
             typename ...Args>
-        friend Return Call(Return (Object::*)(SelfPtr, Params...) const, Object &self,
+        friend Return Call(Return (Object::*)(Self<Interface>, Params...) const, Object &self,
                 Args &&...args);
 };
 
 
-class traits::ConstSelfPtr
+template<typename Interface>
+class traits::ConstSelf
 {
     public:
-        ConstSelfPtr(SelfPtr self)
+        ConstSelf(Self<Interface> self)
             : _ptr(self._ptr)
         {
         }
 
     private:
-        ConstSelfPtr(const void *ptr)
+        ConstSelf(const void *ptr)
             : _ptr(ptr)
         {
         }
 
         const void *_ptr;
 
-        template<typename Interface, typename Object>
+        template<typename, typename>
         friend class ImplBase;
 
-        template<typename... Interfaces>
+        template<typename...>
         friend class ConstRef;
 
-        template<typename Object, typename Interface, typename Return, typename ...Params,
+        template<typename Object, typename Interf, typename Return, typename ...Params,
             typename ...Args>
-        friend Return Call(Return (Interface::*method)(ConstSelfPtr, Params...) const,
+        friend Return Call(Return (Interf::*method)(ConstSelf<Interf>, Params...) const,
                 const Object &self, Args &&...args);
 };
 
@@ -95,12 +101,12 @@ class traits::ImplBase
     : public Interface
 {
     protected:
-        Object &Instance(SelfPtr self) const
+        Object &Instance(Self<Interface> self) const
         {
             return *static_cast<Object*>(self._ptr);
         }
 
-        const Object &Instance(ConstSelfPtr self) const
+        const Object &Instance(ConstSelf<Interface> self) const
         {
             return *static_cast<const Object*>(self._ptr);
         }
@@ -153,13 +159,13 @@ class traits::Ref {
         }
 
         template<typename Interface, typename Return, typename ...Params, typename ...Args>
-        Return Call(Return (Interface::*method)(SelfPtr, Params...) const, Args &&...args)
+        Return Call(Return (Interface::*method)(Self<Interface>, Params...) const, Args &&...args)
         {
-            return (_impl->*method)(_obj, std::forward<Args>(args)...);
+            return (_impl->*method)(Self<Interface>(_obj), std::forward<Args>(args)...);
         }
 
     private:
-        SelfPtr _obj;
+        void *_obj;
         const typename detail::Combined<Interfaces...>::Interface *_impl;
 
         friend class ConstRef<Interfaces...>;
@@ -185,36 +191,33 @@ class traits::ConstRef {
         ConstRef(const ConstRef &) = default;
 
         template<typename Interface, typename Return, typename ...Params, typename ...Args>
-        Return Call(Return (Interface::*method)(SelfPtr, Params...) const, Args &&...args)
+        Return Call(Return (Interface::*method)(ConstSelf<Interface>, Params...) const,
+                Args &&...args)
         {
-            return (_impl->*method)(_obj, std::forward<Args>(args)...);
-        }
-
-        template<typename Interface, typename Return, typename ...Params, typename ...Args>
-        Return Call(Return (Interface::*method)(ConstSelfPtr, Params...) const, Args &&...args)
-        {
-            return (_impl->*method)(_obj, std::forward<Args>(args)...);
+            return (_impl->*method)(ConstSelf<Interface>(_obj), std::forward<Args>(args)...);
         }
 
     private:
-        ConstSelfPtr _obj;
+        const void *_obj;
         const typename detail::Combined<Interfaces...>::Interface *_impl;
 };
 
 
 template<typename Object, typename Interface, typename Return, typename ...Params,
     typename ...Args>
-Return traits::Call(Return (Interface::*method)(ConstSelfPtr, Params...) const, Object &self,
-        Args &&...args)
+Return traits::Call(Return (Interface::*method)(ConstSelf<Interface>, Params...) const,
+        Object &self, Args &&...args)
 {
-    return (Impl<Interface, Object>{}.*method)(SelfPtr(&self), std::forward<Args>(args)...);
+    return (Impl<Interface, Object>{}.*method)(Self<Interface>(&self),
+            std::forward<Args>(args)...);
 }
 
 template<typename Object, typename Interface, typename Return, typename ...Params,
     typename ...Args>
-Return traits::Call(Return (Interface::*method)(ConstSelfPtr, Params...) const, const Object &self,
-        Args &&...args)
+Return traits::Call(Return (Interface::*method)(ConstSelf<Interface>, Params...) const,
+        const Object &self, Args &&...args)
 {
-    return (Impl<Interface, Object>{}.*method)(ConstSelfPtr(&self), std::forward<Args>(args)...);
+    return (Impl<Interface, Object>{}.*method)(ConstSelf<Interface>(&self),
+            std::forward<Args>(args)...);
 }
 

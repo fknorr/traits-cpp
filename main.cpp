@@ -4,7 +4,7 @@
 class Shape
 {
     public:
-        virtual void Draw(traits::ConstSelfPtr self) const = 0;
+        virtual void Draw(traits::ConstSelf<Shape> self) const = 0;
 };
 
 
@@ -13,7 +13,7 @@ class traits::Impl<Shape, T>
     : public ImplBase<Shape, T>
 {
     public:
-        virtual void Draw(ConstSelfPtr self) const override {
+        virtual void Draw(traits::ConstSelf<Shape> self) const override {
             std::cout << this->Instance(self) << "\n";
         }
 };
