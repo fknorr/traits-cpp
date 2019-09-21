@@ -108,8 +108,30 @@ void test_reset() {
 }
 
 
+void test_box() {
+    traits::Box<Print> box(std::make_unique<std::string>("Hello World!"));
+    TEST_EQUAL(box.call(&Print::print), "Hello World!");
+    auto move = std::move(box);
+    TEST_EQUAL(move.call(&Print::print), "Hello World!");
+
+    struct DeleteTracer {
+        DeleteTracer(bool &b): deleted(&b) {}
+        ~DeleteTracer() { *deleted = true; }
+        bool *deleted;
+    };
+
+    bool deleted = false;
+    {
+        traits::Box<> trace = std::make_unique<DeleteTracer>(deleted);
+        TEST_EQUAL(deleted, false);
+    }
+    TEST_EQUAL(deleted, true);
+}
+
+
 int main() {
     test_print();
     test_get_type_info();
     test_reset();
+    test_box();
 }

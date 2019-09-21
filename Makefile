@@ -4,7 +4,7 @@ CXX=/usr/bin/env clang++
 
 bin/unit_test: unit_test.cpp
 	mkdir -p bin
-	$(CXX) -std=c++17 -o bin/unit_test unit_test.cpp
+	$(CXX) -std=c++17 -g -o bin/unit_test unit_test.cpp
 
 test: bin/unit_test
 	bin/unit_test
