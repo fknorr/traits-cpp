@@ -17,19 +17,19 @@
 class Print
 {
     public:
-        virtual std::string print(traits::ConstSelf<Print> self) const = 0;
+        virtual std::string print(traits::ConstSelf self) const = 0;
 };
 
 class GetTypeInfo
 {
     public:
-        virtual const std::type_info &get_type_info(traits::ConstSelf<GetTypeInfo> self) const = 0;
+        virtual const std::type_info &get_type_info(traits::ConstSelf self) const = 0;
 };
 
 class Reset
 {
     public:
-        virtual void reset(traits::Self<Reset> self) const = 0;
+        virtual void reset(traits::Self self) const = 0;
 };
 
 
@@ -38,7 +38,7 @@ class traits::Impl<Print, T>
     : public ImplBase<Print, T>
 {
     public:
-        virtual std::string print(traits::ConstSelf<Print> self) const override {
+        virtual std::string print(traits::ConstSelf self) const override {
             std::ostringstream oss;
             oss << this->instance(self);
             return oss.str();
@@ -50,8 +50,7 @@ class traits::Impl<GetTypeInfo, T>
     : public ImplBase<GetTypeInfo, T>
 {
     public:
-        virtual const std::type_info &get_type_info(
-                traits::ConstSelf<GetTypeInfo> self) const override {
+        virtual const std::type_info &get_type_info(traits::ConstSelf self) const override {
             return typeid(this->instance(self));
         }
 };
@@ -61,7 +60,7 @@ class traits::Impl<Reset, T>
     : public ImplBase<Reset, T>
 {
     public:
-        virtual void reset(traits::Self<Reset> self) const override {
+        virtual void reset(traits::Self self) const override {
             this->instance(self) = T{};
         }
 };

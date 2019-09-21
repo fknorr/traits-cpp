@@ -3,7 +3,7 @@
 
 class Reset {
     public:
-        virtual void reset(traits::Self<Reset> self) const = 0;
+        virtual void reset(traits::Self self) const = 0;
 };
 
 template<typename T>
@@ -11,14 +11,14 @@ class traits::Impl<Reset, T>
     : public ImplBase<Reset, T>
 {
     public:
-        virtual void reset(traits::Self<Reset> self) const override {
+        virtual void reset(traits::Self self) const final {
             this->instance(self) = T{};
         }
 };
 
 class Repeat {
     public:
-        virtual void repeat(traits::Self<Repeat> self, unsigned n) const = 0;
+        virtual void repeat(traits::Self self, unsigned n) const = 0;
 };
 
 template<typename T>
@@ -26,7 +26,7 @@ class traits::Impl<Repeat, T>
     : public ImplBase<Repeat, T>
 {
     public:
-        virtual void repeat(traits::Self<Repeat> self, unsigned n) const override {
+        virtual void repeat(traits::Self self, unsigned n) const final {
             auto &inst = this->instance(self);
             for (unsigned i = 0; i < n; ++i) {
                 inst += inst;

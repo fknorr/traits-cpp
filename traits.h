@@ -3,10 +3,8 @@
 
 namespace traits {
 
-    template<typename Interface>
     class Self;
 
-    template<typename Interface>
     class ConstSelf;
 
     template<typename Interface, typename Object>
@@ -23,12 +21,12 @@ namespace traits {
 
     template<typename Object, typename Interface, typename Return, typename ...Params,
         typename ...Args>
-    Return call(Return (Interface::*method)(ConstSelf<Interface>, Params...) const, Object &self,
+    Return call(Return (Interface::*method)(ConstSelf, Params...) const, Object &self,
             Args &&...args);
 
     template<typename Object, typename Interface, typename Return, typename ...Params,
         typename ...Args>
-    Return call(Return (Interface::*method)(ConstSelf<Interface>, Params...) const,
+    Return call(Return (Interface::*method)(ConstSelf, Params...) const,
             const Object &self, Args &&...args);
 
     namespace detail {
@@ -44,18 +42,16 @@ namespace traits {
 }
 
 
-template<typename Interface>
 class traits::Self
 {
     private:
-        Self(void *ptr)
+        explicit Self(void *ptr)
             : _ptr(ptr)
         {
         }
 
         void *_ptr;
 
-        template<typename Object>
         friend class ConstSelf;
 
         template<typename, typename>
@@ -64,24 +60,23 @@ class traits::Self
         template<typename... Interfaces>
         friend class Ref;
 
-        template<typename Object, typename Return, typename ...Params,
+        template<typename Object, typename Interface, typename Return, typename ...Params,
             typename ...Args>
-        friend Return call(Return (Object::*)(Self<Interface>, Params...) const, Object &self,
-                Args &&...args);
+        friend Return call(Return (Interface::*method)(Self, Params...) const,
+                const Object &self, Args &&...args);
 };
 
 
-template<typename Interface>
 class traits::ConstSelf
 {
     public:
-        ConstSelf(Self<Interface> self)
+        ConstSelf(Self self)
             : _ptr(self._ptr)
         {
         }
 
     private:
-        ConstSelf(const void *ptr)
+        explicit ConstSelf(const void *ptr)
             : _ptr(ptr)
         {
         }
@@ -97,9 +92,9 @@ class traits::ConstSelf
         template<typename...>
         friend class ConstRef;
 
-        template<typename Object, typename Interf, typename Return, typename ...Params,
+        template<typename Object, typename Interface, typename Return, typename ...Params,
             typename ...Args>
-        friend Return call(Return (Interf::*method)(ConstSelf<Interf>, Params...) const,
+        friend Return call(Return (Interface::*method)(ConstSelf, Params...) const,
                 const Object &self, Args &&...args);
 };
 
@@ -109,12 +104,12 @@ class traits::ImplBase
     : public Interface
 {
     protected:
-        Object &instance(Self<Interface> self) const
+        Object &instance(Self self) const
         {
             return *static_cast<Object*>(self._ptr);
         }
 
-        const Object &instance(ConstSelf<Interface> self) const
+        const Object &instance(ConstSelf self) const
         {
             return *static_cast<const Object*>(self._ptr);
         }
@@ -172,17 +167,17 @@ class traits::Ref {
         }
 
         template<typename Interface, typename Return, typename ...Params, typename ...Args>
-        Return call(Return (Interface::*method)(Self<Interface>, Params...) const,
+        Return call(Return (Interface::*method)(Self, Params...) const,
                 Args &&...args) const
         {
-            return _itable->dispatch(method, Self<Interface>(_obj), std::forward<Args>(args)...);
+            return _itable->dispatch(method, Self(_obj), std::forward<Args>(args)...);
         }
 
         template<typename Interface, typename Return, typename ...Params, typename ...Args>
-        Return call(Return (Interface::*method)(ConstSelf<Interface>, Params...) const,
+        Return call(Return (Interface::*method)(ConstSelf, Params...) const,
                 Args &&...args) const
         {
-            return _itable->dispatch(method, ConstSelf<Interface>(_obj),
+            return _itable->dispatch(method, ConstSelf(_obj),
                     std::forward<Args>(args)...);
         }
 
@@ -205,10 +200,10 @@ class traits::ConstRef {
         }
 
         template<typename Interface, typename Return, typename ...Params, typename ...Args>
-        Return call(Return (Interface::*method)(ConstSelf<Interface>, Params...) const,
+        Return call(Return (Interface::*method)(ConstSelf, Params...) const,
                 Args &&...args) const
         {
-            return _itable->dispatch(method, ConstSelf<Interface>(_obj),
+            return _itable->dispatch(method, ConstSelf(_obj),
                     std::forward<Args>(args)...);
         }
 
@@ -220,20 +215,20 @@ class traits::ConstRef {
 
 template<typename Object, typename Interface, typename Return, typename ...Params,
     typename ...Args>
-Return traits::call(Return (Interface::*method)(ConstSelf<Interface>, Params...) const,
+Return traits::call(Return (Interface::*method)(ConstSelf, Params...) const,
         Object &self, Args &&...args)
 {
-    return (Impl<Interface, Object>{}.*method)(Self<Interface>(&self),
+    return (Impl<Interface, Object>{}.*method)(Self(&self),
             std::forward<Args>(args)...);
 }
 
 
 template<typename Object, typename Interface, typename Return, typename ...Params,
     typename ...Args>
-Return traits::call(Return (Interface::*method)(ConstSelf<Interface>, Params...) const,
+Return traits::call(Return (Interface::*method)(ConstSelf, Params...) const,
         const Object &self, Args &&...args)
 {
-    return (Impl<Interface, Object>{}.*method)(ConstSelf<Interface>(&self),
+    return (Impl<Interface, Object>{}.*method)(ConstSelf(&self),
             std::forward<Args>(args)...);
 }
 
